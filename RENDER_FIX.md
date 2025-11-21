@@ -20,8 +20,8 @@ KeyError: '__version__'
 **Render Web Service 설정에서:**
 
 1. Web Service → **"Settings"** 탭
-2. **"Python Version"** 또는 **"Environment"** 섹션 찾기
-3. Python 버전을 **`3.11`**로 설정
+2. **"Python Version"** 섹션 찾기
+3. Python 버전을 **`3.11.0`** (major.minor.patch 형식 필수!)로 설정
 4. **"Save Changes"** 클릭
 5. 재배포
 
@@ -30,8 +30,16 @@ KeyError: '__version__'
 1. Web Service → **"Environment"** 탭
 2. **"Add Environment Variable"** 클릭
 3. Key: `PYTHON_VERSION`
-4. Value: `3.11`
+4. Value: `3.11.0` (⚠️ 반드시 major.minor.patch 형식!)
 5. **"Save Changes"** 클릭
+
+**또는 runtime.txt 파일 (backend/runtime.txt):**
+
+```
+3.11.0
+```
+
+⚠️ **중요**: `python-3.11.0` 형식이 아니라 `3.11.0`만 입력해야 합니다!
 
 ### 방법 2: Pillow 버전 업데이트
 
@@ -90,12 +98,14 @@ psycopg2-binary==2.9.9
 
 ## 빠른 해결 (가장 쉬움)
 
-### Step 1: runtime.txt 생성
+### Step 1: runtime.txt 생성 (수정됨)
 
 ```bash
 cd backend
-echo "python-3.11.0" > runtime.txt
+echo "3.11.0" > runtime.txt
 ```
+
+⚠️ **중요**: `python-` 접두사 없이 버전 번호만 입력!
 
 ### Step 2: requirements.txt 수정
 

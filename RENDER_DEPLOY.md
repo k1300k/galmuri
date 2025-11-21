@@ -55,9 +55,15 @@ Region: Singapore (또는 가장 가까운 지역)
 Branch: main
 Root Directory: backend
 Runtime: Python 3
+Python Version: 3.11.0 (중요! Settings에서 설정)
 Build Command: pip install -r requirements.txt
 Start Command: uvicorn presentation.main:app --host 0.0.0.0 --port $PORT
 ```
+
+**⚠️ Python 버전 설정 (중요!):**
+- Web Service 생성 후 → **"Settings"** 탭
+- **"Python Version"** 섹션에서 `3.11.0` 선택
+- 또는 Environment 변수로: `PYTHON_VERSION=3.11.0`
 
 ### 3단계: PostgreSQL 데이터베이스 추가
 
@@ -66,9 +72,36 @@ Start Command: uvicorn presentation.main:app --host 0.0.0.0 --port $PORT
    - Name: `galmuri-diary-db`
    - Plan: Free (90일 무료)
 
-2. **데이터베이스 연결**
-   - Web Service → Environment → Add Environment Variable
-   - `DATABASE_URL` 추가 (PostgreSQL 서비스에서 자동 제공)
+2. **데이터베이스 연결** (상세 단계)
+
+   📚 **더 자세한 가이드**: `RENDER_DATABASE_SETUP.md` 참고
+
+   **방법 A: 자동 연결 (가장 쉬움) ⭐ 권장**
+   
+   - Web Service 생성 시:
+     1. "Advanced" 섹션 확장
+     2. "Add Database" 또는 "Link Database" 클릭
+     3. 드롭다운에서 생성한 PostgreSQL 서비스 선택
+     4. Render가 자동으로 `DATABASE_URL` 환경 변수 추가
+   
+   **방법 B: 수동 연결**
+   
+   - Step 1: PostgreSQL 서비스에서 연결 정보 확인
+     - Render 대시보드에서 PostgreSQL 서비스 클릭
+     - "Info" 또는 "Connections" 탭 확인
+     - **Internal Database URL** 복사 (같은 네트워크 내 사용, 권장)
+     - 연결 문자열 형식: `postgresql://user:password@host:port/database`
+   
+   - Step 2: Web Service에 환경 변수 추가
+     - Web Service → "Environment" 탭
+     - "Add Environment Variable" 클릭
+     - Key: `DATABASE_URL`
+     - Value: 복사한 연결 문자열
+     - "Save Changes" 클릭
+   
+   - Step 3: 연결 확인
+     - 환경 변수 저장 후 자동 재배포
+     - "Logs" 탭에서 연결 성공 메시지 확인
 
 ### 4단계: 환경 변수 설정
 
