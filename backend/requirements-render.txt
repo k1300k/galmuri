@@ -1,0 +1,23 @@
+# Render 배포용 requirements.txt
+# Python 3.13 호환성 문제 해결
+
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+sqlalchemy==2.0.25
+alembic==1.13.1
+python-multipart==0.0.6
+pillow>=10.3.0  # Python 3.13 호환 버전
+pytesseract==0.3.10
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-dotenv==1.0.0
+psycopg2-binary==2.9.9  # PostgreSQL driver
+
+# 테스트 의존성은 Render에서 제외 (선택사항)
+# pytest==7.4.4
+# pytest-asyncio==0.23.3
+# httpx==0.26.0
+# aiosqlite==0.19.0  # SQLite는 Render에서 사용하지 않음
+
