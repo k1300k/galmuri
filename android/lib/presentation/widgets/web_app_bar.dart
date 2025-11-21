@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'program_info_modal.dart';
 
 /// Web-optimized app bar
 class WebAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -10,6 +11,13 @@ class WebAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.onSearch,
     this.onSettings,
   });
+
+  void _showProgramInfo(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => const ProgramInfoModal(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +36,11 @@ class WebAppBar extends StatelessWidget implements PreferredSizeWidget {
         ],
       ),
       actions: [
+        IconButton(
+          icon: const Icon(Icons.info_outline),
+          tooltip: '프로그램 정보',
+          onPressed: () => _showProgramInfo(context),
+        ),
         IconButton(
           icon: const Icon(Icons.search),
           tooltip: '검색',
