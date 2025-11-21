@@ -1,0 +1,18 @@
+# Vercel 배포용 requirements.txt
+# SQLite 대신 PostgreSQL 사용 권장
+
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+python-multipart==0.0.6
+pillow==10.2.0
+pytesseract==0.3.10
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-dotenv==1.0.0
+
+# PostgreSQL 지원 (선택사항)
+# psycopg2-binary==2.9.9
+# sqlalchemy==2.0.25
+

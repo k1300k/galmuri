@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galmuri Diary</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 400px;
+            min-height: 500px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .preview {
+            margin-bottom: 15px;
+        }
+
+        .preview img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .page-info {
+            margin-bottom: 15px;
+        }
+
+        .page-info h3 {
+            font-size: 14px;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .page-info p {
+            font-size: 12px;
+            color: #666;
+            word-break: break-all;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 13px;
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .settings-group {
+            margin-bottom: 15px;
+        }
+
+        .settings-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .settings-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            display: block;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+
+        .status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            display: block;
+        }
+
+        .settings-view {
+            display: none;
+        }
+
+        .settings-view.active {
+            display: block;
+        }
+
+        .capture-view.hidden {
+            display: none;
+        }
+
+        .help-text {
+            font-size: 11px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+
+        .nav-btn {
+            flex: 1;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .nav-btn.active {
+            background: white;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Galmuri Diary</h1>
+            <p>Capture & Archive with OCR</p>
+        </div>
+
+        <div class="nav-buttons">
+            <button class="nav-btn active" id="navCapture">캡처</button>
+            <button class="nav-btn" id="navSettings">설정</button>
+        </div>
+
+        <!-- Capture View -->
+        <div class="card capture-view" id="captureView">
+            <div class="preview">
+                <img id="previewImage" src="" alt="Screenshot Preview">
+            </div>
+
+            <div class="page-info">
+                <h3>페이지 정보</h3>
+                <p id="pageTitle">Loading...</p>
+                <p id="pageUrl" style="margin-top: 5px;">Loading...</p>
+            </div>
+
+            <div class="form-group">
+                <label for="memoInput">메모 💭</label>
+                <textarea id="memoInput" placeholder="이 페이지에 대한 메모를 작성하세요..."></textarea>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-secondary" id="cancelBtn">취소</button>
+                <button class="btn-primary" id="saveBtn">
+                    <span id="saveBtnText">저장</span>
+                </button>
+            </div>
+
+            <div class="status" id="status"></div>
+        </div>
+
+        <!-- Settings View -->
+        <div class="card settings-view" id="settingsView">
+            <h2 style="margin-bottom: 15px; font-size: 18px;">설정</h2>
+
+            <div class="settings-group">
+                <label for="apiKeyInput">API Key</label>
+                <input type="password" id="apiKeyInput" placeholder="API Key를 입력하세요">
+                <p class="help-text">백엔드 서버와 통신하기 위한 API Key입니다.</p>
+            </div>
+
+            <div class="settings-group">
+                <label for="userIdInput">User ID</label>
+                <input type="text" id="userIdInput" placeholder="User ID를 입력하세요">
+                <p class="help-text">고유한 사용자 ID (UUID 형식 권장)</p>
+            </div>
+
+            <div class="settings-group">
+                <label for="apiUrlInput">API URL</label>
+                <input type="text" id="apiUrlInput" placeholder="http://localhost:8000">
+                <p class="help-text">백엔드 API 서버 주소</p>
+            </div>
+
+            <button class="btn-primary" id="saveSettingsBtn" style="width: 100%;">
+                설정 저장
+            </button>
+
+            <div class="status" id="settingsStatus"></div>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
+
+

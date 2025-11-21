@@ -1,0 +1,31 @@
+# Render Blueprint 설정 파일
+# 이 파일을 사용하면 여러 서비스를 한 번에 배포할 수 있습니다
+
+services:
+  # FastAPI 백엔드 서버
+  - type: web
+    name: galmuri-diary-api
+    env: python
+    region: singapore  # 또는 가장 가까운 지역 선택
+    plan: free  # 또는 starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn presentation.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
+      - key: OCR_LANGUAGE
+        value: kor+eng
+      - key: CORS_ORIGINS
+        value: https://galmuri-diary-api.onrender.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: galmuri-diary-db
+          property: connectionString
+
+  # PostgreSQL 데이터베이스
+databases:
+  - name: galmuri-diary-db
+    plan: free  # 90일 무료, 이후 $7/월
+    databaseName: galmuri
+    user: galmuri_user
+

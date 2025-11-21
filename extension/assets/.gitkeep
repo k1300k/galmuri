@@ -1,0 +1,5 @@
+# Placeholder for extension icons
+# Run: python3 scripts/create_icons.py (after installing Pillow in backend venv)
+# Or create icons manually (16x16, 48x48, 128x128)
+
+
