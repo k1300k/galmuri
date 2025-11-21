@@ -1,8 +1,13 @@
 {
-  "buildCommand": "flutter build web --release",
+  "buildCommand": "flutter pub get && flutter build web --release",
   "outputDirectory": "build/web",
   "framework": null,
   "installCommand": "flutter pub get",
-  "devCommand": "flutter run -d chrome"
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
 
