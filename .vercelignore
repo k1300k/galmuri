@@ -1,0 +1,17 @@
+# Vercel Ignore File
+# Vercel이 백엔드 코드를 서버리스 함수로 인식하지 않도록 제외합니다.
+
+backend/
+extension/
+examples/
+terminals/
+*.md
+*.txt
+.git/
+.gitignore
+prd.mdc
+
+# Flutter 프로젝트는 포함
+!android/
+!vercel.json
+

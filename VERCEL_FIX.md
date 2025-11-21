@@ -12,12 +12,26 @@ Flutter 웹 앱을 Vercel에 배포할 때 서버리스 함수 오류가 발생�
 ## 원인
 
 1. **Flutter 웹은 정적 파일**: Flutter 웹 앱은 서버리스 함수가 필요 없는 정적 파일입니다.
-2. **잘못된 빌드 설정**: Vercel이 Flutter 빌드를 제대로 인식하지 못할 수 있습니다.
+2. **백엔드 코드 감지**: Vercel이 프로젝트 내의 `backend/` (Python) 폴더를 감지하고 서버리스 함수로 배포하려다 실패하는 것입니다.
 3. **경로 문제**: SPA 라우팅을 위한 rewrites 설정이 필요합니다.
 
 ## 해결 방법
 
-### 방법 1: 프로젝트 루트에 vercel.json 추가 (권장)
+### 방법 1: .vercelignore 파일 추가 (필수) ⭐
+
+Vercel이 백엔드 코드를 무시하도록 `.vercelignore` 파일을 프로젝트 루트에 생성하세요:
+
+```bash
+# .vercelignore
+backend/
+extension/
+examples/
+*.md
+.git/
+prd.mdc
+```
+
+### 방법 2: 프로젝트 루트에 vercel.json 추가 (권장)
 
 프로젝트 루트에 `vercel.json` 파일을 생성하세요:
 
@@ -103,10 +117,19 @@ jobs:
 
 ## 빠른 해결 (권장)
 
-### Step 1: 프로젝트 루트에 vercel.json 생성
+### Step 1: .vercelignore 및 vercel.json 생성
 
 ```bash
-# 프로젝트 루트에서
+# 1. .vercelignore 생성 (백엔드 무시)
+cat > .vercelignore << 'EOF'
+backend/
+extension/
+examples/
+*.md
+.git/
+EOF
+
+# 2. vercel.json 생성 (빌드 설정)
 cat > vercel.json << 'EOF'
 {
   "buildCommand": "cd android && flutter pub get && flutter build web --release",
@@ -125,8 +148,8 @@ EOF
 ### Step 2: Git에 커밋 및 푸시
 
 ```bash
-git add vercel.json
-git commit -m "fix: Vercel 배포 설정 수정"
+git add .vercelignore vercel.json
+git commit -m "fix: Vercel 배포 설정 수정 (.vercelignore 추가)"
 git push origin main
 ```
 
