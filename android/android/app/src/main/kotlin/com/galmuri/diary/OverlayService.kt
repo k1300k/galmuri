@@ -29,19 +29,14 @@ class OverlayService : Service() {
     private var screenWidth = 0
     private var screenHeight = 0
     private var screenDensity = 0
-    private var captureCallback: ((ByteArray) -> Unit)? = null
 
     companion object {
         private const val NOTIFICATION_ID = 1001
         private const val CHANNEL_ID = "overlay_service_channel"
-        private var instance: OverlayService? = null
-        
-        fun getInstance(): OverlayService? = instance
     }
 
     override fun onCreate() {
         super.onCreate()
-        instance = this
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         
@@ -148,10 +143,6 @@ class OverlayService : Service() {
         stopSelf()
     }
 
-    fun setCaptureCallback(callback: (ByteArray) -> Unit) {
-        captureCallback = callback
-    }
-
     private fun captureScreen() {
         if (mediaProjection == null) {
             return
@@ -176,8 +167,8 @@ class OverlayService : Service() {
                 val bitmap = imageToBitmap(image)
                 val byteArray = bitmapToByteArray(bitmap)
                 
-                // Flutter에 캡처 결과 전달
-                captureCallback?.invoke(byteArray)
+                // MainActivity에 캡처 결과 전달
+                MainActivity.getInstance()?.onScreenCaptured(byteArray)
                 
                 // 정리
                 image.close()
@@ -226,7 +217,6 @@ class OverlayService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         hideOverlayButton()
-        instance = null
     }
 }
 

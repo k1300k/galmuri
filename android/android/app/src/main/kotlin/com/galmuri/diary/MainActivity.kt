@@ -26,6 +26,22 @@ class MainActivity: FlutterActivity() {
     private var pendingData: Intent? = null
     private var eventSink: EventChannel.EventSink? = null
 
+    companion object {
+        private var instance: MainActivity? = null
+        
+        fun getInstance(): MainActivity? = instance
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        instance = this
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        instance = null
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         
@@ -130,15 +146,6 @@ class MainActivity: FlutterActivity() {
             putExtra("data", data)
         }
         
-        // OverlayService에 이벤트 전달 콜백 설정
-        OverlayService.getInstance()?.setCaptureCallback { imageBytes ->
-            val base64 = Base64.encodeToString(imageBytes, Base64.NO_WRAP)
-            eventSink?.success(mapOf(
-                "type" to "screen_captured",
-                "imageBase64" to base64
-            ))
-        }
-        
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
         } else {
@@ -150,6 +157,16 @@ class MainActivity: FlutterActivity() {
         
         overlayResultCallback?.success("overlay_shown")
         overlayResultCallback = null
+    }
+    
+    fun onScreenCaptured(imageBytes: ByteArray) {
+        runOnUiThread {
+            val base64 = Base64.encodeToString(imageBytes, Base64.NO_WRAP)
+            eventSink?.success(mapOf(
+                "type" to "screen_captured",
+                "imageBase64" to base64
+            ))
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
