@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -18,6 +21,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   static const MethodChannel _channel = MethodChannel('com.galmuri.diary/screen_capture');
+  static const EventChannel _eventChannel = EventChannel('com.galmuri.diary/screen_capture_events');
+  StreamSubscription<dynamic>? _captureSubscription;
 
   @override
   void initState() {
@@ -26,6 +31,51 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(galmuriItemsProvider.notifier).loadItems();
     });
+    
+    // 화면 캡처 이벤트 리스너 설정 (모바일 전용)
+    if (!kIsWeb) {
+      _setupCaptureListener();
+    }
+  }
+
+  @override
+  void dispose() {
+    _captureSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _setupCaptureListener() {
+    _captureSubscription?.cancel();
+    _captureSubscription = _eventChannel.receiveBroadcastStream().listen(
+      (event) {
+        if (event is Map && event['type'] == 'screen_captured') {
+          final imageBase64 = event['imageBase64'] as String?;
+          if (imageBase64 != null && mounted) {
+            // CaptureScreen으로 이동하면서 캡처된 이미지 전달
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CaptureScreen(
+                  capturedImageBytes: base64Decode(imageBase64),
+                ),
+              ),
+            ).then((_) {
+              ref.read(galmuriItemsProvider.notifier).loadItems();
+            });
+          }
+        }
+      },
+      onError: (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('캡처 오류: $error'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+    );
   }
 
   Future<void> _showOverlayCapture() async {
