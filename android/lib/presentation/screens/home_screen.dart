@@ -41,36 +41,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     try {
-      // 오버레이 권한 확인
-      final hasOverlayPermission = await _channel.invokeMethod<bool>('checkOverlayPermission');
+      // 스크린샷 감지 시작
+      final result = await _channel.invokeMethod<String>('startScreenshotObserver');
       
-      if (hasOverlayPermission != true) {
-        // 오버레이 권한 요청
-        final permissionResult = await _channel.invokeMethod<String>('requestOverlayPermission');
-        
-        if (permissionResult != 'permission_granted') {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('오버레이 권한이 필요합니다. 설정에서 권한을 허용해주세요.'),
-                backgroundColor: Colors.orange,
-                duration: Duration(seconds: 3),
-              ),
-            );
-          }
-          return;
-        }
-      }
-
-      // 오버레이 표시
-      final result = await _channel.invokeMethod<String>('showOverlay');
-      
-      if (result == 'overlay_shown') {
+      if (result == 'observer_started' || result == 'permission_requested') {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('화면 캡처 버튼이 표시되었습니다. 다른 앱으로 이동하여 버튼을 눌러 캡처하세요.'),
-              duration: Duration(seconds: 4),
+              content: Text('스크린샷 자동 저장이 활성화되었습니다!\n\n볼륨 다운 + 전원 버튼으로 스크린샷을 찍으면 자동으로 저장됩니다.'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 5),
             ),
           );
         }
@@ -78,7 +58,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('오버레이 표시 실패: $result'),
+              content: Text('시작 실패: $result'),
               backgroundColor: Colors.red,
             ),
           );
@@ -88,7 +68,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('캡처 실패: ${e.toString()}'),
+            content: Text('오류: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
