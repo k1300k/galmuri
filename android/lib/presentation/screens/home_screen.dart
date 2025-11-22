@@ -69,36 +69,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('다른 앱으로 이동하여 상단의 "화면 캡처" 버튼을 눌러주세요'),
-              duration: Duration(seconds: 3),
+              content: Text('화면 캡처 버튼이 표시되었습니다. 다른 앱으로 이동하여 버튼을 눌러 캡처하세요.'),
+              duration: Duration(seconds: 4),
             ),
           );
         }
-        
-        // 캡처 화면으로 이동 (캡처 결과를 받기 위해)
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const CaptureScreen()),
-        ).then((_) {
-          ref.read(galmuriItemsProvider.notifier).loadItems();
-        });
       } else {
-        // 오버레이 표시 실패 시 일반 캡처 화면으로 이동
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const CaptureScreen()),
-        ).then((_) {
-          ref.read(galmuriItemsProvider.notifier).loadItems();
-        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('오버레이 표시 실패: $result'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
-      // 오류 발생 시 일반 캡처 화면으로 이동
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const CaptureScreen()),
-      ).then((_) {
-        ref.read(galmuriItemsProvider.notifier).loadItems();
-      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('캡처 실패: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

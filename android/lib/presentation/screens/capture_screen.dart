@@ -180,7 +180,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
     
     _captureSubscription?.cancel();
     _captureSubscription = _eventChannel.receiveBroadcastStream().listen(
-      (event) {
+      (event) async {
         if (event is Map && event['type'] == 'screen_captured') {
           final imageBase64 = event['imageBase64'] as String?;
           if (imageBase64 != null) {
@@ -197,13 +197,8 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
                 _titleController.text = '화면 캡처 ${DateTime.now().toString().substring(0, 16)}';
               }
               
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('화면이 캡처되었습니다'),
-                  backgroundColor: Colors.green,
-                  duration: Duration(seconds: 2),
-                ),
-              );
+              // 자동 저장
+              await _autoSave();
             }
           }
         }
@@ -219,6 +214,68 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
         }
       },
     );
+  }
+  
+  Future<void> _autoSave() async {
+    if (_screenshotBytes == null) {
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final imageBase64 = base64Encode(_screenshotBytes!);
+      final userId = ref.read(userIdProvider);
+      
+      if (userId == null || userId.isEmpty) {
+        throw Exception('User ID가 설정되지 않았습니다. 설정 화면에서 User ID를 입력해주세요.');
+      }
+
+      final request = CaptureRequest(
+        userId: userId,
+        imageData: imageBase64,
+        pageTitle: _titleController.text,
+        memoContent: _memoController.text,
+        platform: kIsWeb ? 'WEB_APP' : 'MOBILE_APP',
+      );
+
+      await ref.read(galmuriItemsProvider.notifier).capture(request);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('화면 캡처가 자동 저장되었습니다!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        
+        // 2초 후 자동으로 홈으로 이동
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) {
+            Navigator.pop(context);
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('자동 저장 실패: ${e.toString()}'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
   }
 
   Future<String> _imageToBase64(File? imageFile) async {
