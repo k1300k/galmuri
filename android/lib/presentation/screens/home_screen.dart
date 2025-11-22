@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/galmuri_provider.dart';
 import '../widgets/program_info_modal.dart';
@@ -15,6 +17,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  static const MethodChannel _channel = MethodChannel('com.galmuri.diary/screen_capture');
+
   @override
   void initState() {
     super.initState();
@@ -22,6 +26,80 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(galmuriItemsProvider.notifier).loadItems();
     });
+  }
+
+  Future<void> _showOverlayCapture() async {
+    if (kIsWeb) {
+      // 웹에서는 캡처 화면으로 이동
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const CaptureScreen()),
+      ).then((_) {
+        ref.read(galmuriItemsProvider.notifier).loadItems();
+      });
+      return;
+    }
+
+    try {
+      // 오버레이 권한 확인
+      final hasOverlayPermission = await _channel.invokeMethod<bool>('checkOverlayPermission');
+      
+      if (hasOverlayPermission != true) {
+        // 오버레이 권한 요청
+        final permissionResult = await _channel.invokeMethod<String>('requestOverlayPermission');
+        
+        if (permissionResult != 'permission_granted') {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('오버레이 권한이 필요합니다. 설정에서 권한을 허용해주세요.'),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      // 오버레이 표시
+      final result = await _channel.invokeMethod<String>('showOverlay');
+      
+      if (result == 'overlay_shown') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('다른 앱으로 이동하여 상단의 "화면 캡처" 버튼을 눌러주세요'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        
+        // 캡처 화면으로 이동 (캡처 결과를 받기 위해)
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const CaptureScreen()),
+        ).then((_) {
+          ref.read(galmuriItemsProvider.notifier).loadItems();
+        });
+      } else {
+        // 오버레이 표시 실패 시 일반 캡처 화면으로 이동
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const CaptureScreen()),
+        ).then((_) {
+          ref.read(galmuriItemsProvider.notifier).loadItems();
+        });
+      }
+    } catch (e) {
+      // 오류 발생 시 일반 캡처 화면으로 이동
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const CaptureScreen()),
+      ).then((_) {
+        ref.read(galmuriItemsProvider.notifier).loadItems();
+      });
+    }
   }
 
   @override
@@ -143,15 +221,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const CaptureScreen()),
-          ).then((_) {
-            // Refresh items after capture
-            ref.read(galmuriItemsProvider.notifier).loadItems();
-          });
-        },
+        onPressed: _showOverlayCapture,
         icon: const Icon(Icons.camera_alt),
         label: const Text('캡처'),
       ),

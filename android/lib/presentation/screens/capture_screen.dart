@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -26,10 +27,12 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
   final _titleController = TextEditingController();
   final GlobalKey _repaintBoundaryKey = GlobalKey();
   static const MethodChannel _channel = MethodChannel('com.galmuri.diary/screen_capture');
+  static const EventChannel _eventChannel = EventChannel('com.galmuri.diary/screen_capture_events');
   File? _selectedImage;
   String? _imageBase64; // Web용
   Uint8List? _screenshotBytes; // 스크린샷용
   bool _isSaving = false;
+  StreamSubscription<dynamic>? _captureSubscription;
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
@@ -105,51 +108,50 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
     }
 
     try {
-      // MediaProjection 권한 요청
-      final result = await _channel.invokeMethod<String>('requestScreenCapture');
+      // 오버레이 권한 확인
+      final hasOverlayPermission = await _channel.invokeMethod<bool>('checkOverlayPermission');
       
-      if (result == 'permission_granted') {
-        // 권한이 허용되었지만, 실제 캡처는 시스템 스크린샷을 사용해야 함
-        // Android에서는 MediaProjection으로 직접 캡처하는 것이 복잡하므로
-        // 사용자에게 시스템 스크린샷 사용을 안내
-        if (mounted) {
-          final shouldUseSystemScreenshot = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('화면 캡처'),
-              content: const Text(
-                '다른 앱의 화면을 캡처하려면:\n\n'
-                '1. 확인을 누르면 앱이 백그라운드로 이동합니다\n'
-                '2. 원하는 화면으로 이동하세요\n'
-                '3. 볼륨 다운 + 전원 버튼을 눌러 스크린샷을 찍으세요\n'
-                '4. 다시 앱으로 돌아와서 "갤러리" 버튼을 눌러 스크린샷을 선택하세요',
+      if (hasOverlayPermission != true) {
+        // 오버레이 권한 요청
+        final permissionResult = await _channel.invokeMethod<String>('requestOverlayPermission');
+        
+        if (permissionResult != 'permission_granted') {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('오버레이 권한이 필요합니다. 설정에서 권한을 허용해주세요.'),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 3),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('취소'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('확인'),
-                ),
-              ],
+            );
+          }
+          return;
+        }
+      }
+
+      // 오버레이 표시
+      final result = await _channel.invokeMethod<String>('showOverlay');
+      
+      if (result == 'overlay_shown') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('다른 앱으로 이동하여 상단의 "화면 캡처" 버튼을 눌러주세요'),
+              duration: Duration(seconds: 3),
             ),
           );
-
-          if (shouldUseSystemScreenshot == true) {
-            // 앱을 백그라운드로 보내기 (홈 화면으로 이동)
-            // 실제 구현은 플랫폼 채널을 통해 가능하지만,
-            // 여기서는 사용자에게 안내만 제공
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('홈 버튼을 눌러 다른 앱으로 이동한 후 스크린샷을 찍으세요.'),
-                  duration: Duration(seconds: 4),
-                ),
-              );
-            }
-          }
+        }
+        
+        // 캡처 결과를 기다리는 리스너 설정
+        _setupCaptureListener();
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('오버레이 표시 실패: $result'),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
       }
     } on PlatformException catch (e) {
@@ -171,6 +173,52 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
         );
       }
     }
+  }
+
+  void _setupCaptureListener() {
+    if (kIsWeb) return;
+    
+    _captureSubscription?.cancel();
+    _captureSubscription = _eventChannel.receiveBroadcastStream().listen(
+      (event) {
+        if (event is Map && event['type'] == 'screen_captured') {
+          final imageBase64 = event['imageBase64'] as String?;
+          if (imageBase64 != null) {
+            setState(() {
+              _screenshotBytes = base64Decode(imageBase64);
+              _selectedImage = null;
+              _imageBase64 = null;
+            });
+            
+            // 앱을 포그라운드로 가져오기
+            if (mounted) {
+              // 제목 자동 생성
+              if (_titleController.text.isEmpty) {
+                _titleController.text = '화면 캡처 ${DateTime.now().toString().substring(0, 16)}';
+              }
+              
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('화면이 캡처되었습니다'),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            }
+          }
+        }
+      },
+      onError: (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('캡처 오류: $error'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+    );
   }
 
   Future<String> _imageToBase64(File? imageFile) async {
@@ -253,9 +301,18 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
 
   @override
   void dispose() {
+    _captureSubscription?.cancel();
     _memoController.dispose();
     _titleController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (!kIsWeb) {
+      _setupCaptureListener();
+    }
   }
 
   @override
