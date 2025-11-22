@@ -148,6 +148,10 @@ class OverlayService : Service() {
             return
         }
 
+        // 기존 리소스 정리 (중복 호출 방지)
+        virtualDisplay?.release()
+        imageReader?.close()
+        
         imageReader = ImageReader.newInstance(screenWidth, screenHeight, PixelFormat.RGBA_8888, 2)
         
         virtualDisplay = mediaProjection?.createVirtualDisplay(
@@ -164,25 +168,39 @@ class OverlayService : Service() {
         imageReader?.setOnImageAvailableListener({ reader ->
             val image = reader.acquireLatestImage()
             if (image != null) {
-                val bitmap = imageToBitmap(image)
-                val byteArray = bitmapToByteArray(bitmap)
-                
-                // MainActivity에 캡처 결과 전달
-                MainActivity.getInstance()?.onScreenCaptured(byteArray)
-                
-                // 정리
-                image.close()
-                virtualDisplay?.release()
-                imageReader?.close()
-                mediaProjection?.stop()
-                
-                // 오버레이 숨기기
-                hideOverlayButton()
-                
-                // 앱을 포그라운드로 가져오기
-                val intent = packageManager.getLaunchIntentForPackage(packageName)
-                intent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                startActivity(intent)
+                try {
+                    val bitmap = imageToBitmap(image)
+                    val byteArray = bitmapToByteArray(bitmap)
+                    
+                    // MainActivity에 캡처 결과 전달
+                    val mainActivity = MainActivity.getInstance()
+                    if (mainActivity != null) {
+                        mainActivity.onScreenCaptured(byteArray)
+                    }
+                    
+                    // 정리
+                    image.close()
+                    virtualDisplay?.release()
+                    virtualDisplay = null
+                    imageReader?.close()
+                    imageReader = null
+                    mediaProjection?.stop()
+                    
+                    // 오버레이 숨기기
+                    hideOverlayButton()
+                    
+                    // 앱을 포그라운드로 가져오기
+                    val intent = packageManager.getLaunchIntentForPackage(packageName)
+                    intent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    // 에러 발생 시 리소스 정리
+                    image.close()
+                    virtualDisplay?.release()
+                    virtualDisplay = null
+                    imageReader?.close()
+                    imageReader = null
+                }
             }
         }, null)
     }
@@ -216,6 +234,13 @@ class OverlayService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        // 모든 리소스 정리
+        virtualDisplay?.release()
+        virtualDisplay = null
+        imageReader?.close()
+        imageReader = null
+        mediaProjection?.stop()
+        mediaProjection = null
         hideOverlayButton()
     }
 }
