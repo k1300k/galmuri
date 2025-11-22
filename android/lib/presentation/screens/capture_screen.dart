@@ -16,7 +16,9 @@ import 'dart:ui' as ui;
 
 
 class CaptureScreen extends ConsumerStatefulWidget {
-  const CaptureScreen({super.key});
+  final Uint8List? capturedImageBytes; // 홈에서 전달받은 캡처 이미지
+  
+  const CaptureScreen({super.key, this.capturedImageBytes});
 
   @override
   ConsumerState<CaptureScreen> createState() => _CaptureScreenState();
@@ -367,6 +369,19 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
   @override
   void initState() {
     super.initState();
+    
+    // 홈에서 전달받은 캡처 이미지가 있으면 자동으로 설정
+    if (widget.capturedImageBytes != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() {
+          _screenshotBytes = widget.capturedImageBytes;
+          _titleController.text = '화면 캡처 ${DateTime.now().toString().substring(0, 16)}';
+        });
+        // 자동 저장
+        _autoSave();
+      });
+    }
+    
     if (!kIsWeb) {
       _setupCaptureListener();
     }
