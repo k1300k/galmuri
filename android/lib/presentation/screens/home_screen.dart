@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/galmuri_provider.dart';
+import '../providers/settings_provider.dart';
 import '../widgets/program_info_modal.dart';
 import 'capture_screen.dart';
 import 'search_screen.dart';
@@ -91,6 +92,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     try {
+      final userId = ref.read(userIdProvider);
+      if (userId == null || userId.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('설정 화면에서 User ID를 먼저 입력해주세요.'),
+              duration: const Duration(seconds: 4),
+              action: SnackBarAction(
+                label: '설정으로 이동',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                  );
+                },
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
       // 오버레이 권한 확인
       final hasOverlayPermission = await _channel.invokeMethod<bool>('checkOverlayPermission');
       

@@ -12,6 +12,7 @@ import 'package:uuid/uuid.dart';
 import '../providers/galmuri_provider.dart';
 import '../providers/settings_provider.dart';
 import '../../data/models/capture_request.dart';
+import 'settings_screen.dart';
 import 'dart:ui' as ui;
 
 
@@ -186,6 +187,8 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
         if (event is Map && event['type'] == 'screen_captured') {
           final imageBase64 = event['imageBase64'] as String?;
           if (imageBase64 != null) {
+            debugPrint('[CaptureScreen] screen_captured event 수신 '
+                '(${imageBase64.length} base64 chars)');
             setState(() {
               _screenshotBytes = base64Decode(imageBase64);
               _selectedImage = null;
@@ -223,6 +226,9 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
       return;
     }
 
+    debugPrint('[CaptureScreen] 자동 저장 시작 '
+        '(bytes=${_screenshotBytes?.lengthInBytes ?? 0})');
+
     setState(() {
       _isSaving = true;
     });
@@ -232,7 +238,9 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
       final userId = ref.read(userIdProvider);
       
       if (userId == null || userId.isEmpty) {
-        throw Exception('User ID가 설정되지 않았습니다. 설정 화면에서 User ID를 입력해주세요.');
+        debugPrint('[CaptureScreen] User ID 누락으로 자동 저장 중단');
+        await _showUserIdRequiredDialog();
+        return;
       }
 
       final request = CaptureRequest(
@@ -244,6 +252,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
       );
 
       await ref.read(galmuriItemsProvider.notifier).capture(request);
+      debugPrint('[CaptureScreen] 자동 저장 성공 (userId=$userId)');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -262,6 +271,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
         });
       }
     } catch (e) {
+      debugPrint('[CaptureScreen] 자동 저장 실패: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -358,6 +368,33 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
     }
   }
 
+  Future<void> _showUserIdRequiredDialog() async {
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('User ID가 필요합니다'),
+        content: const Text('새 캡처를 저장하려면 설정 화면에서 User ID를 먼저 입력해주세요.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('닫기'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            },
+            child: const Text('설정 이동'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _captureSubscription?.cancel();
@@ -373,6 +410,8 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
     // 홈에서 전달받은 캡처 이미지가 있으면 자동으로 설정
     if (widget.capturedImageBytes != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        debugPrint('[CaptureScreen] received capturedImageBytes '
+            '(${widget.capturedImageBytes!.lengthInBytes} bytes) from HomeScreen');
         setState(() {
           _screenshotBytes = widget.capturedImageBytes;
           _titleController.text = '화면 캡처 ${DateTime.now().toString().substring(0, 16)}';
