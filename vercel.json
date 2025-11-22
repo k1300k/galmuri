@@ -1,7 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "exit 0",
-  "installCommand": "exit 0",
+  "framework": null,
+  "buildCommand": null,
+  "installCommand": null,
   "outputDirectory": "android/build/web",
   "rewrites": [
     {
@@ -9,5 +10,6 @@
       "destination": "/index.html"
     }
   ],
-  "cleanUrls": true
+  "cleanUrls": true,
+  "trailingSlash": false
 }
