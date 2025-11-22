@@ -62,7 +62,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         }
       }
 
-      // 오버레이 표시
+      // 화면 캡처 권한 요청 안내
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('⚠️ 중요: 화면 공유 팝업에서 반드시 "전체 화면"을 선택해 주세요!'),
+            backgroundColor: Colors.blue,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+
+      // 오버레이 표시 (이 과정에서 화면 캡처 권한 요청 팝업이 뜸)
       final result = await _channel.invokeMethod<String>('showOverlay');
       
       if (result == 'overlay_shown') {
