@@ -20,13 +20,11 @@ class MainActivity: FlutterActivity() {
     private val EVENT_CHANNEL = "com.galmuri.diary/screen_capture_events"
     private val REQUEST_MEDIA_PROJECTION = 1000
     private val REQUEST_OVERLAY_PERMISSION = 1001
-    private val REQUEST_STORAGE_PERMISSION = 1002
     private var resultCallback: MethodChannel.Result? = null
     private var overlayResultCallback: MethodChannel.Result? = null
     private var pendingResultCode: Int = 0
     private var pendingData: Intent? = null
     private var eventSink: EventChannel.EventSink? = null
-    private var screenshotObserver: ScreenshotObserver? = null
 
     companion object {
         private var instance: MainActivity? = null
@@ -41,8 +39,6 @@ class MainActivity: FlutterActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        screenshotObserver?.stopObserving()
-        screenshotObserver = null
         instance = null
     }
 
@@ -79,55 +75,11 @@ class MainActivity: FlutterActivity() {
                 "requestOverlayPermission" -> {
                     requestOverlayPermission(result)
                 }
-                "startScreenshotObserver" -> {
-                    startScreenshotObserver(result)
-                }
-                "stopScreenshotObserver" -> {
-                    stopScreenshotObserver(result)
-                }
                 else -> {
                     result.notImplemented()
                 }
             }
         }
-    }
-
-    private fun startScreenshotObserver(result: MethodChannel.Result) {
-        // 저장소 권한 확인
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(android.Manifest.permission.READ_MEDIA_IMAGES) != 
-                android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(
-                    arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES),
-                    REQUEST_STORAGE_PERMISSION
-                )
-                result.success("permission_requested")
-                return
-            }
-        } else {
-            if (checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) != 
-                android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(
-                    arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE),
-                    REQUEST_STORAGE_PERMISSION
-                )
-                result.success("permission_requested")
-                return
-            }
-        }
-
-        // 스크린샷 감지 시작
-        screenshotObserver = ScreenshotObserver(this) { imageBytes ->
-            onScreenCaptured(imageBytes)
-        }
-        screenshotObserver?.startObserving()
-        result.success("observer_started")
-    }
-
-    private fun stopScreenshotObserver(result: MethodChannel.Result) {
-        screenshotObserver?.stopObserving()
-        screenshotObserver = null
-        result.success("observer_stopped")
     }
 
     private fun requestScreenCapture(result: MethodChannel.Result) {
