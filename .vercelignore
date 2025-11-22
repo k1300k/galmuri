@@ -7,6 +7,16 @@ examples/
 terminals/
 *.md
 *.txt
+*.py
+requirements*.txt
+pyproject.toml
+Pipfile
+Pipfile.lock
+__pycache__/
+.pytest_cache/
+venv/
+env/
+ENV/
 .git/
 .gitignore
 prd.mdc
@@ -14,4 +24,3 @@ prd.mdc
 # Flutter 프로젝트는 포함
 !android/
 !vercel.json
-
