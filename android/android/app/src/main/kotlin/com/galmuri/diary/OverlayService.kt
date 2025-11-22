@@ -122,104 +122,109 @@ class OverlayService : Service() {
             return // 이미 표시 중
         }
 
-        // MediaProjection 설정
-        if (resultCode != 0 && resultData != null) {
-            mediaProjection = mediaProjectionManager?.getMediaProjection(resultCode, resultData)
-        }
+        try {
+            // MediaProjection 설정
+            if (resultCode != 0 && resultData != null) {
+                mediaProjection = mediaProjectionManager?.getMediaProjection(resultCode, resultData)
+            }
 
-        // 저장된 위치 불러오기
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val savedX = prefs.getInt(PREF_OVERLAY_X, -1)
-        val savedY = prefs.getInt(PREF_OVERLAY_Y, -1)
+            // 저장된 위치 불러오기
+            val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val savedX = prefs.getInt(PREF_OVERLAY_X, -1)
+            val savedY = prefs.getInt(PREF_OVERLAY_Y, -1)
 
-        // 오버레이 버튼 생성
-        val button = Button(this).apply {
-            text = "화면 캡처"
-            setBackgroundColor(Color.parseColor("#FF0000"))
-            setTextColor(Color.WHITE)
-            textSize = 14f
-            setPadding(32, 16, 32, 16)
-            
-            // 드래그 가능하도록 터치 리스너 설정
-            setOnTouchListener { view, event ->
-                when (event.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        overlayParams?.let { params ->
-                            initialX = params.x
-                            initialY = params.y
-                        } ?: run {
-                            initialX = 0
-                            initialY = 0
-                        }
-                        initialTouchX = event.rawX
-                        initialTouchY = event.rawY
-                        true
-                    }
-                    MotionEvent.ACTION_MOVE -> {
-                        val deltaX = (event.rawX - initialTouchX).toInt()
-                        val deltaY = (event.rawY - initialTouchY).toInt()
-                        
-                        overlayParams?.let { params ->
-                            params.x = initialX + deltaX
-                            params.y = initialY + deltaY
-                            
-                            // 화면 경계 체크
-                            params.x = params.x.coerceIn(0, screenWidth - view.width)
-                            params.y = params.y.coerceIn(0, screenHeight - view.height)
-                            
-                            windowManager?.updateViewLayout(overlayView, params)
-                        }
-                        true
-                    }
-                    MotionEvent.ACTION_UP -> {
-                        // 위치 저장
-                        overlayParams?.let { params ->
-                            prefs.edit()
-                                .putInt(PREF_OVERLAY_X, params.x)
-                                .putInt(PREF_OVERLAY_Y, params.y)
-                                .apply()
-                            
-                            // 클릭 이벤트 처리 (짧은 이동이면 클릭으로 간주)
-                            val moveDistance = Math.sqrt(
-                                Math.pow((event.rawX - initialTouchX).toDouble(), 2.0) +
-                                Math.pow((event.rawY - initialTouchY).toDouble(), 2.0)
-                            )
-                            if (moveDistance < 10) { // 10픽셀 이하면 클릭으로 간주
-                                captureScreen()
+            // 오버레이 버튼 생성
+            val button = Button(this).apply {
+                text = "화면 캡처"
+                setBackgroundColor(Color.parseColor("#FF0000"))
+                setTextColor(Color.WHITE)
+                textSize = 14f
+                setPadding(32, 16, 32, 16)
+                
+                // 드래그 가능하도록 터치 리스너 설정
+                setOnTouchListener { view, event ->
+                    when (event.action) {
+                        MotionEvent.ACTION_DOWN -> {
+                            overlayParams?.let { params ->
+                                initialX = params.x
+                                initialY = params.y
+                            } ?: run {
+                                initialX = 0
+                                initialY = 0
                             }
+                            initialTouchX = event.rawX
+                            initialTouchY = event.rawY
+                            true
                         }
-                        true
+                        MotionEvent.ACTION_MOVE -> {
+                            val deltaX = (event.rawX - initialTouchX).toInt()
+                            val deltaY = (event.rawY - initialTouchY).toInt()
+                            
+                            overlayParams?.let { params ->
+                                params.x = initialX + deltaX
+                                params.y = initialY + deltaY
+                                
+                                // 화면 경계 체크
+                                params.x = params.x.coerceIn(0, screenWidth - view.width)
+                                params.y = params.y.coerceIn(0, screenHeight - view.height)
+                                
+                                windowManager?.updateViewLayout(overlayView, params)
+                            }
+                            true
+                        }
+                        MotionEvent.ACTION_UP -> {
+                            // 위치 저장
+                            overlayParams?.let { params ->
+                                prefs.edit()
+                                    .putInt(PREF_OVERLAY_X, params.x)
+                                    .putInt(PREF_OVERLAY_Y, params.y)
+                                    .apply()
+                                
+                                // 클릭 이벤트 처리 (짧은 이동이면 클릭으로 간주)
+                                val moveDistance = Math.sqrt(
+                                    Math.pow((event.rawX - initialTouchX).toDouble(), 2.0) +
+                                    Math.pow((event.rawY - initialTouchY).toDouble(), 2.0)
+                                )
+                                if (moveDistance < 10) { // 10픽셀 이하면 클릭으로 간주
+                                    captureScreen()
+                                }
+                            }
+                            true
+                        }
+                        else -> false
                     }
-                    else -> false
                 }
             }
-        }
 
-        val layoutParams = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            } else {
-                WindowManager.LayoutParams.TYPE_PHONE
-            },
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            // 저장된 위치가 있으면 사용, 없으면 기본 위치
-            if (savedX >= 0 && savedY >= 0) {
-                x = savedX
-                y = savedY
-            } else {
-                x = (screenWidth / 2) - 100 // 중앙에서 약간 왼쪽
-                y = 100
+            val layoutParams = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                } else {
+                    WindowManager.LayoutParams.TYPE_PHONE
+                },
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                // 저장된 위치가 있으면 사용, 없으면 기본 위치
+                if (savedX >= 0 && savedY >= 0) {
+                    x = savedX
+                    y = savedY
+                } else {
+                    x = (screenWidth / 2) - 100 // 중앙에서 약간 왼쪽
+                    y = 100
+                }
             }
-        }
 
-        overlayParams = layoutParams
-        overlayView = button
-        windowManager?.addView(overlayView, layoutParams)
+            overlayParams = layoutParams
+            overlayView = button
+            windowManager?.addView(overlayView, layoutParams)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            stopSelf() // 에러 발생 시 서비스 종료
+        }
     }
 
     fun hideOverlayButton() {
