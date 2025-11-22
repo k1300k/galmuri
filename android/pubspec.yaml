@@ -29,7 +29,6 @@ dependencies:
 
   # Image Processing
   image_picker: ^1.0.5
-  screenshot: ^2.1.0
   image: ^4.1.3
 
   # Storage
