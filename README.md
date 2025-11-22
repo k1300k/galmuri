@@ -9,7 +9,10 @@
 ## 주요 기능
 
 - 🌐 **Web Capture**: Chrome Extension을 통한 웹 페이지 캡처
-- 📱 **Mobile App**: 안드로이드 앱으로 스크린샷 캡처 및 저장
+- 📱 **Mobile Screen Capture**: 안드로이드 앱으로 다른 앱 화면 캡처 (오버레이 방식)
+  - ✨ **드래그 가능한 캡처 버튼**: 화면 위를 자유롭게 이동
+  - 💾 **자동 저장**: 캡처 후 즉시 자동 저장, 수동 입력 불필요
+  - 🚀 **간단한 플로우**: 버튼 클릭 → 캡처 → 완료 (3초 이내)
 - 🔍 **OCR Integration**: 이미지 내 텍스트 자동 추출 (한글/영문)
 - 💾 **Local First**: 오프라인 우선 저장, 백그라운드 동기화
 - 🔐 **API Key 인증**: 간단한 개인 API Key 기반 인증
@@ -224,6 +227,11 @@ pytest tests/test_ocr_service.py -v
 - **Local DB**: SQLite (sqflite)
 - **HTTP**: Dio
 - **State Management**: Riverpod
+- **Screen Capture**: MediaProjection API (오버레이 방식)
+- **Features**: 
+  - 드래그 가능한 캡처 버튼
+  - 자동 저장
+  - 위치 기억 기능
 
 ## 트러블슈팅
 
