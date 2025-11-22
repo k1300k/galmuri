@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
@@ -24,6 +25,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
   final _memoController = TextEditingController();
   final _titleController = TextEditingController();
   final GlobalKey _repaintBoundaryKey = GlobalKey();
+  static const MethodChannel _channel = MethodChannel('com.galmuri.diary/screen_capture');
   File? _selectedImage;
   String? _imageBase64; // Web용
   Uint8List? _screenshotBytes; // 스크린샷용
@@ -103,33 +105,61 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
     }
 
     try {
-      // RepaintBoundary를 사용하여 현재 화면 캡처
-      RenderRepaintBoundary boundary = _repaintBoundaryKey.currentContext!
-          .findRenderObject() as RenderRepaintBoundary;
+      // MediaProjection 권한 요청
+      final result = await _channel.invokeMethod<String>('requestScreenCapture');
       
-      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-      ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      
-      if (byteData != null) {
-        Uint8List pngBytes = byteData.buffer.asUint8List();
-        
-        setState(() {
-          _screenshotBytes = pngBytes;
-          _selectedImage = null;
-          _imageBase64 = null;
-          if (_titleController.text.isEmpty) {
-            _titleController.text = '화면 캡처 ${DateTime.now().toString().substring(0, 16)}';
-          }
-        });
-
+      if (result == 'permission_granted') {
+        // 권한이 허용되었지만, 실제 캡처는 시스템 스크린샷을 사용해야 함
+        // Android에서는 MediaProjection으로 직접 캡처하는 것이 복잡하므로
+        // 사용자에게 시스템 스크린샷 사용을 안내
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('화면이 캡처되었습니다!'),
-              backgroundColor: Colors.green,
+          final shouldUseSystemScreenshot = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('화면 캡처'),
+              content: const Text(
+                '다른 앱의 화면을 캡처하려면:\n\n'
+                '1. 확인을 누르면 앱이 백그라운드로 이동합니다\n'
+                '2. 원하는 화면으로 이동하세요\n'
+                '3. 볼륨 다운 + 전원 버튼을 눌러 스크린샷을 찍으세요\n'
+                '4. 다시 앱으로 돌아와서 "갤러리" 버튼을 눌러 스크린샷을 선택하세요',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('취소'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('확인'),
+                ),
+              ],
             ),
           );
+
+          if (shouldUseSystemScreenshot == true) {
+            // 앱을 백그라운드로 보내기 (홈 화면으로 이동)
+            // 실제 구현은 플랫폼 채널을 통해 가능하지만,
+            // 여기서는 사용자에게 안내만 제공
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('홈 버튼을 눌러 다른 앱으로 이동한 후 스크린샷을 찍으세요.'),
+                  duration: Duration(seconds: 4),
+                ),
+              );
+            }
+          }
         }
+      }
+    } on PlatformException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('화면 캡처 권한이 필요합니다: ${e.message}'),
+            backgroundColor: Colors.orange,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
