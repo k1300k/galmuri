@@ -1,0 +1,88 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'android/**'
+      - '.github/workflows/build-apk.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        working-directory: ./android
+        run: flutter pub get
+
+      - name: Build APK
+        working-directory: ./android
+        run: flutter build apk --release
+
+      - name: Get version from pubspec
+        id: version
+        working-directory: ./android
+        run: |
+          VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | cut -d '+' -f 1)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: galmuri-diary-v${{ steps.version.outputs.version }}
+          path: android/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+      - name: Create Release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.version }}-${{ github.run_number }}
+          name: Galmuri Diary v${{ steps.version.outputs.version }} (Build ${{ github.run_number }})
+          body: |
+            ## 📱 갈무리 다이어리 Android APK
+            
+            ### 다운로드 및 설치 방법
+            1. 아래 **app-release.apk** 파일을 다운로드하세요
+            2. 안드로이드 폰으로 파일을 전송하세요
+            3. 파일을 탭하여 설치하세요
+            4. "알 수 없는 소스" 설치 허용이 필요할 수 있습니다
+            
+            ### 주요 기능
+            - 📸 갤러리/카메라에서 이미지 선택
+            - 🖼️ 화면 캡처 기능 (안드로이드 전용)
+            - 📝 제목 및 메모 추가
+            - 🔍 검색 기능
+            - ☁️ Render 백엔드 연동
+            
+            ### 버전 정보
+            - Version: ${{ steps.version.outputs.version }}
+            - Build: ${{ github.run_number }}
+            - Commit: ${{ github.sha }}
+          files: |
+            android/build/app/outputs/flutter-apk/app-release.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
