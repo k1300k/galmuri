@@ -1,16 +1,12 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "android/build/web/**",
-      "use": "@vercel/static"
-    }
-  ],
+  "buildCommand": "exit 0",
+  "installCommand": "exit 0",
+  "outputDirectory": "android/build/web",
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/android/build/web/index.html"
+      "destination": "/index.html"
     }
-  ],
-  "ignoreCommand": "exit 0" 
+  ]
 }
