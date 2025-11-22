@@ -410,13 +410,15 @@ final List<VersionInfo> versionHistory = [
   ),
   VersionInfo(
     version: 'v1.4',
-    title: 'Flutter Web 프론트엔드 추가',
+    title: 'Flutter Web 프론트엔드 추가 및 Vercel 배포',
     date: '2024년 초',
     color: Colors.teal,
     prompts: [
       'Flutter로 서비스 하는 거 아니였냐요',
       '웹 프로트엔드 만들어 주세요 flutter로',
       '이미 구성된 https://galmuri.onrender.com/ Render의 백앤드와 연계 된 프론트엔드로 구성하는 거죠',
+      'Vercel 배포 오류 해결 (FUNCTION_INVOCATION_FAILED, 404 NOT_FOUND)',
+      'vercel login / npx vercel deploy --prod',
     ],
     features: [
       'Flutter Web 프론트엔드 구현',
@@ -424,9 +426,10 @@ final List<VersionInfo> versionHistory = [
       'WebAppBar: 웹 전용 앱바',
       '웹/모바일 통합 이미지 업로드 (image_picker)',
       'Render 백엔드 기본 URL 설정 (https://galmuri.onrender.com)',
-      'Vercel/Netlify 배포 설정 파일',
-      '반응형 디자인 (넓은 화면/작은 화면 대응)',
       '프로그램 정보 모달 (개발 이력 표시)',
+      '반응형 디자인 (넓은 화면/작은 화면 대응)',
+      'Vercel 직접 배포 (CLI 기반 정적 파일 업로드)',
+      '프로덕션 배포 URL: https://web-iz6dlkns8-johns-projects-38f16458.vercel.app',
     ],
     improvements: [
       '웹에서 dart:html 의존성 제거, image_picker로 통합',
@@ -434,6 +437,10 @@ final List<VersionInfo> versionHistory = [
       '웹 빌드 최적화 및 배포 가이드 작성',
       '프롬프트 기반 개발 이력 시각화',
       '버전별 기능 및 개선사항 추적',
+      'Vercel Git 연동 문제 해결: 로컬 빌드 후 CLI로 직접 배포',
+      'vercel.json 설정으로 정적 사이트 명시 (framework: null)',
+      '.vercelignore로 백엔드 파일 제외',
+      'Flutter 빌드 환경이 없는 Vercel에서 사전 빌드된 파일 직접 업로드',
     ],
   ),
 ];

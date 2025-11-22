@@ -1,13 +1,16 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../providers/galmuri_provider.dart';
 import '../providers/settings_provider.dart';
 import '../../data/models/capture_request.dart';
+import 'dart:ui' as ui;
 
 
 class CaptureScreen extends ConsumerStatefulWidget {
@@ -20,8 +23,10 @@ class CaptureScreen extends ConsumerStatefulWidget {
 class _CaptureScreenState extends ConsumerState<CaptureScreen> {
   final _memoController = TextEditingController();
   final _titleController = TextEditingController();
+  final GlobalKey _repaintBoundaryKey = GlobalKey();
   File? _selectedImage;
   String? _imageBase64; // Web용
+  Uint8List? _screenshotBytes; // 스크린샷용
   bool _isSaving = false;
 
   Future<void> _pickImage() async {
@@ -66,16 +71,82 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
     );
 
     if (image != null) {
-      setState(() {
-        _selectedImage = File(image.path);
-        if (_titleController.text.isEmpty) {
-          _titleController.text = '사진 ${DateTime.now().toString().substring(0, 16)}';
+      if (kIsWeb) {
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _selectedImage = null;
+          _imageBase64 = base64Encode(bytes);
+          _screenshotBytes = null;
+          if (_titleController.text.isEmpty) {
+            _titleController.text = '사진 ${DateTime.now().toString().substring(0, 16)}';
+          }
+        });
+      } else {
+        setState(() {
+          _selectedImage = File(image.path);
+          _screenshotBytes = null;
+          if (_titleController.text.isEmpty) {
+            _titleController.text = '사진 ${DateTime.now().toString().substring(0, 16)}';
+          }
+        });
+      }
+    }
+  }
+
+  Future<void> _captureScreen() async {
+    if (kIsWeb) {
+      // 웹에서는 스크린샷 기능 미지원
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('웹에서는 화면 캡처가 지원되지 않습니다')),
+      );
+      return;
+    }
+
+    try {
+      // RepaintBoundary를 사용하여 현재 화면 캡처
+      RenderRepaintBoundary boundary = _repaintBoundaryKey.currentContext!
+          .findRenderObject() as RenderRepaintBoundary;
+      
+      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      
+      if (byteData != null) {
+        Uint8List pngBytes = byteData.buffer.asUint8List();
+        
+        setState(() {
+          _screenshotBytes = pngBytes;
+          _selectedImage = null;
+          _imageBase64 = null;
+          if (_titleController.text.isEmpty) {
+            _titleController.text = '화면 캡처 ${DateTime.now().toString().substring(0, 16)}';
+          }
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('화면이 캡처되었습니다!'),
+              backgroundColor: Colors.green,
+            ),
+          );
         }
-      });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('화면 캡처 실패: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   Future<String> _imageToBase64(File? imageFile) async {
+    if (_screenshotBytes != null) {
+      return base64Encode(_screenshotBytes!);
+    }
     if (kIsWeb && _imageBase64 != null) {
       return _imageBase64!;
     }
@@ -87,7 +158,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
   }
 
   Future<void> _save() async {
-    if (_selectedImage == null && _imageBase64 == null) {
+    if (_selectedImage == null && _imageBase64 == null && _screenshotBytes == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('이미지를 선택해주세요')),
       );
@@ -159,33 +230,35 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('새 캡처'),
-        actions: [
-          if (_isSaving)
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+    return RepaintBoundary(
+      key: _repaintBoundaryKey,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('새 캡처'),
+          actions: [
+            if (_isSaving)
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+            else
+              IconButton(
+                icon: const Icon(Icons.check),
+                onPressed: _save,
               ),
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.check),
-              onPressed: _save,
-            ),
-        ],
-      ),
-      body: SingleChildScrollView(
+          ],
+        ),
+        body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Image preview
-            if (_selectedImage != null || _imageBase64 != null)
+            if (_selectedImage != null || _imageBase64 != null || _screenshotBytes != null)
               Container(
                 height: 300,
                 decoration: BoxDecoration(
@@ -194,17 +267,22 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: kIsWeb && _imageBase64 != null
+                  child: _screenshotBytes != null
                       ? Image.memory(
-                          base64Decode(_imageBase64!),
+                          _screenshotBytes!,
                           fit: BoxFit.cover,
                         )
-                      : _selectedImage != null
-                          ? Image.file(
-                              _selectedImage!,
+                      : kIsWeb && _imageBase64 != null
+                          ? Image.memory(
+                              base64Decode(_imageBase64!),
                               fit: BoxFit.cover,
                             )
-                          : const SizedBox(),
+                          : _selectedImage != null
+                              ? Image.file(
+                                  _selectedImage!,
+                                  fit: BoxFit.cover,
+                                )
+                              : const SizedBox(),
                 ),
               )
             else
@@ -246,6 +324,22 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
                 ),
               ],
             ),
+            
+            const SizedBox(height: 8),
+            
+            // Screen capture button (모바일 전용)
+            if (!kIsWeb)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _captureScreen,
+                  icon: const Icon(Icons.screenshot),
+                  label: const Text('화면 캡처'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
 
             const SizedBox(height: 24),
 
@@ -273,6 +367,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

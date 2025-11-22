@@ -19,6 +19,7 @@
 3. **"Internal Database URL"** 찾기
 4. **전체 URL 복사** (예: `postgresql://user:pass@host:port/db`)
    - 📋 복사 버튼 클릭 또는 직접 선택하여 복사
+   postgresql://galmuri_diary_db_user:c0JV2Mk5eBfkh7skhWHVqzrvO2Rm6aU1@dpg-d4gdaovdiees739q73ng-a/galmuri_diary_db
 
 ### 3단계: Web Service 생성
 
