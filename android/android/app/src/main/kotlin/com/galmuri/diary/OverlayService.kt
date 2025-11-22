@@ -126,6 +126,11 @@ class OverlayService : Service() {
             // MediaProjection 설정
             if (resultCode != 0 && resultData != null) {
                 mediaProjection = mediaProjectionManager?.getMediaProjection(resultCode, resultData)
+                android.util.Log.d("OverlayService", "MediaProjection initialized successfully")
+            } else {
+                android.util.Log.e("OverlayService", "Invalid resultCode or resultData")
+                stopSelf()
+                return
             }
 
             // 저장된 위치 불러오기
@@ -221,7 +226,9 @@ class OverlayService : Service() {
             overlayParams = layoutParams
             overlayView = button
             windowManager?.addView(overlayView, layoutParams)
+            android.util.Log.d("OverlayService", "Overlay button displayed successfully")
         } catch (e: Exception) {
+            android.util.Log.e("OverlayService", "Failed to show overlay button: ${e.message}", e)
             e.printStackTrace()
             stopSelf() // 에러 발생 시 서비스 종료
         }
@@ -237,8 +244,11 @@ class OverlayService : Service() {
 
     private fun captureScreen() {
         if (mediaProjection == null) {
+            android.util.Log.e("OverlayService", "MediaProjection is null, cannot capture screen")
             return
         }
+
+        android.util.Log.d("OverlayService", "Starting screen capture")
 
         // 기존 리소스 정리 (중복 호출 방지)
         virtualDisplay?.release()
@@ -257,7 +267,9 @@ class OverlayService : Service() {
                 null,
                 null
             )
+            android.util.Log.d("OverlayService", "VirtualDisplay created successfully")
         } catch (e: Exception) {
+            android.util.Log.e("OverlayService", "Failed to create VirtualDisplay: ${e.message}", e)
             e.printStackTrace()
             hideOverlayButton()
             return

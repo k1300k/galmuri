@@ -113,7 +113,11 @@ class MainActivity: FlutterActivity() {
         val intent = Intent(this, OverlayService::class.java).apply {
             action = "HIDE_OVERLAY"
         }
-        startForegroundService(intent)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
         result.success("overlay_hidden")
     }
 
