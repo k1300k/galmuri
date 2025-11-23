@@ -54,8 +54,11 @@ class GalmuriItemsNotifier extends StateNotifier<AsyncValue<List<GalmuriItem>>> 
 
   Future<void> capture(CaptureRequest request) async {
     try {
+      debugPrint('[GalmuriProvider] capture() 시작: userId="${request.userId}", title="${request.pageTitle}"');
+
       final userId = _ref.read(userIdProvider);
       if (userId == null || userId.isEmpty) {
+        debugPrint('[GalmuriProvider] User ID가 설정되지 않음');
         throw Exception('User ID가 설정되지 않았습니다.');
       }
 
@@ -72,8 +75,12 @@ class GalmuriItemsNotifier extends StateNotifier<AsyncValue<List<GalmuriItem>>> 
         updatedAt: DateTime.now(),
       );
 
+      debugPrint('[GalmuriProvider] GalmuriItem 생성 완료: id=${item.id}');
+
       // Save locally first (Local First)
+      debugPrint('[GalmuriProvider] 로컬 저장 시작');
       await _repository.save(item);
+      debugPrint('[GalmuriProvider] 로컬 저장 완료');
 
       // Try to sync with server in background
       final apiClient = _ref.read(apiClientProvider);

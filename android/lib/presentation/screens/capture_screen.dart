@@ -223,6 +223,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
   
   Future<void> _autoSave() async {
     if (_screenshotBytes == null) {
+      debugPrint('[CaptureScreen] 자동 저장 실패: _screenshotBytes가 null');
       return;
     }
 
@@ -236,12 +237,27 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
     try {
       final imageBase64 = base64Encode(_screenshotBytes!);
       final userId = ref.read(userIdProvider);
-      
+
+      debugPrint('[CaptureScreen] User ID 확인: "${userId ?? "null"}"');
+
       if (userId == null || userId.isEmpty) {
         debugPrint('[CaptureScreen] User ID 누락으로 자동 저장 중단');
         await _showUserIdRequiredDialog();
         return;
       }
+
+      debugPrint('[CaptureScreen] CaptureRequest 생성 시작');
+      final request = CaptureRequest(
+        userId: userId,
+        imageData: imageBase64,
+        pageTitle: _titleController.text,
+        memoContent: _memoController.text,
+        platform: kIsWeb ? 'WEB_APP' : 'MOBILE_APP',
+      );
+
+      debugPrint('[CaptureScreen] galmuriItemsProvider.capture() 호출');
+      await ref.read(galmuriItemsProvider.notifier).capture(request);
+      debugPrint('[CaptureScreen] galmuriItemsProvider.capture() 성공');
 
       final request = CaptureRequest(
         userId: userId,

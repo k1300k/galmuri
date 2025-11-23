@@ -21,7 +21,10 @@ class LocalGalmuriRepository implements IGalmuriRepository {
 
   @override
   Future<GalmuriItem> save(GalmuriItem item) async {
+    debugPrint('[LocalRepository] save() 시작: id=${item.id}, userId=${item.userId}');
+
     if (kIsWeb || _db == null) {
+      debugPrint('[LocalRepository] 웹/모바일 DB 없음, in-memory 저장');
       // Web: use in-memory storage
       final index = _webStorage.indexWhere((i) => i.id == item.id);
       if (index >= 0) {
@@ -31,12 +34,14 @@ class LocalGalmuriRepository implements IGalmuriRepository {
       }
       return item;
     }
-    
+
+    debugPrint('[LocalRepository] SQLite DB에 저장 시작');
     await _db!.insert(
       'galmuri_items',
       _toMap(item),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+    debugPrint('[LocalRepository] SQLite DB에 저장 완료');
     return item;
   }
 
