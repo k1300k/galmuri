@@ -25,6 +25,7 @@ class MainActivity: FlutterActivity() {
     private var pendingResultCode: Int = 0
     private var pendingData: Intent? = null
     private var eventSink: EventChannel.EventSink? = null
+    private var pendingCaptureBase64: String? = null
 
     companion object {
         private var instance: MainActivity? = null
@@ -50,6 +51,13 @@ class MainActivity: FlutterActivity() {
             object : EventChannel.StreamHandler {
                 override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
                     eventSink = events
+                    pendingCaptureBase64?.let { base64 ->
+                        events?.success(mapOf(
+                            "type" to "screen_captured",
+                            "imageBase64" to base64
+                        ))
+                        pendingCaptureBase64 = null
+                    }
                 }
 
                 override fun onCancel(arguments: Any?) {
@@ -166,10 +174,15 @@ class MainActivity: FlutterActivity() {
     fun onScreenCaptured(imageBytes: ByteArray) {
         runOnUiThread {
             val base64 = Base64.encodeToString(imageBytes, Base64.NO_WRAP)
-            eventSink?.success(mapOf(
+            val eventData = mapOf(
                 "type" to "screen_captured",
                 "imageBase64" to base64
-            ))
+            )
+            if (eventSink != null) {
+                eventSink?.success(eventData)
+            } else {
+                pendingCaptureBase64 = base64
+            }
         }
     }
 
