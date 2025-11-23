@@ -154,8 +154,14 @@ class OverlayService : Service() {
                 textSize = 14f
                 setPadding(32, 16, 32, 16)
                 
+                // 버튼을 터치 가능하게 설정
+                isClickable = true
+                isFocusable = false
+                
                 var isDragging = false
                 var downTime = 0L
+                
+                android.util.Log.d("OverlayService", "빨간 버튼 생성 완료")
                 
                 // 드래그 가능하도록 터치 리스너 설정
                 setOnTouchListener { view, event ->
@@ -236,7 +242,9 @@ class OverlayService : Service() {
                 } else {
                     WindowManager.LayoutParams.TYPE_PHONE
                 },
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                // FLAG_NOT_TOUCH_MODAL을 추가하여 버튼이 터치를 받을 수 있게 함
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or 
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                 PixelFormat.TRANSLUCENT
             ).apply {
                 gravity = Gravity.TOP or Gravity.START
@@ -249,11 +257,24 @@ class OverlayService : Service() {
                     y = 100
                 }
             }
+            
+            android.util.Log.d("OverlayService", "오버레이 레이아웃 설정 완료: x=${layoutParams.x}, y=${layoutParams.y}")
 
             overlayParams = layoutParams
             overlayView = button
-            windowManager?.addView(overlayView, layoutParams)
-            android.util.Log.d("OverlayService", "Overlay button displayed successfully")
+            
+            try {
+                windowManager?.addView(overlayView, layoutParams)
+                android.util.Log.d("OverlayService", "Overlay button displayed successfully")
+                
+                // 버튼이 실제로 터치 가능한지 확인
+                button.isClickable = true
+                button.isFocusable = false
+                android.util.Log.d("OverlayService", "버튼 클릭 가능 설정 완료")
+            } catch (e: Exception) {
+                android.util.Log.e("OverlayService", "Failed to add overlay view: ${e.message}", e)
+                throw e
+            }
         } catch (e: Exception) {
             android.util.Log.e("OverlayService", "Failed to show overlay button: ${e.message}", e)
             e.printStackTrace()
