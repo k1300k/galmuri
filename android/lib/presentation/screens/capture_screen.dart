@@ -409,9 +409,9 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
     
     // 홈에서 전달받은 캡처 이미지가 있으면 자동으로 설정
     if (widget.capturedImageBytes != null) {
+      debugPrint('[CaptureScreen] initState: capturedImageBytes 수신 (${widget.capturedImageBytes!.lengthInBytes} bytes)');
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        debugPrint('[CaptureScreen] received capturedImageBytes '
-            '(${widget.capturedImageBytes!.lengthInBytes} bytes) from HomeScreen');
+        debugPrint('[CaptureScreen] addPostFrameCallback 실행, 이미지 설정 및 자동 저장 시작');
         setState(() {
           _screenshotBytes = widget.capturedImageBytes;
           _titleController.text = '화면 캡처 ${DateTime.now().toString().substring(0, 16)}';
@@ -419,6 +419,8 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
         // 자동 저장
         _autoSave();
       });
+    } else {
+      debugPrint('[CaptureScreen] initState: capturedImageBytes 없음');
     }
     
     if (!kIsWeb) {
