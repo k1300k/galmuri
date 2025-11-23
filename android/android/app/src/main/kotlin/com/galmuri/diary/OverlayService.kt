@@ -37,6 +37,8 @@ class OverlayService : Service() {
     private var initialY = 0
     private var initialTouchX = 0f
     private var initialTouchY = 0f
+    private var imageReaderHandler: android.os.Handler? = null
+    private var imageReaderThread: android.os.HandlerThread? = null
 
     companion object {
         private const val NOTIFICATION_ID = 1001
@@ -56,6 +58,12 @@ class OverlayService : Service() {
         screenWidth = displayMetrics.widthPixels
         screenHeight = displayMetrics.heightPixels
         screenDensity = displayMetrics.densityDpi
+        
+        // ImageReader용 백그라운드 스레드 생성
+        imageReaderThread = android.os.HandlerThread("ImageReaderThread").apply {
+            start()
+        }
+        imageReaderHandler = android.os.Handler(imageReaderThread!!.looper)
         
         createNotificationChannel()
         
@@ -275,12 +283,18 @@ class OverlayService : Service() {
             return
         }
 
+        // ImageReader 리스너를 백그라운드 스레드에서 실행
         imageReader?.setOnImageAvailableListener({ reader ->
+            android.util.Log.d("OverlayService", "ImageReader onImageAvailable 콜백 호출됨")
             val image = reader.acquireLatestImage()
+            android.util.Log.d("OverlayService", "Image acquired: ${image != null}")
             if (image != null) {
                 try {
+                    android.util.Log.d("OverlayService", "이미지 변환 시작 (width=${image.width}, height=${image.height})")
                     val bitmap = imageToBitmap(image)
+                    android.util.Log.d("OverlayService", "Bitmap 생성 완료")
                     val byteArray = bitmapToByteArray(bitmap)
+                    android.util.Log.d("OverlayService", "ByteArray 변환 완료 (size=${byteArray.size})")
                     
                     // MainActivity에 캡처 결과 전달
                     android.util.Log.d("OverlayService", "캡처 완료, MainActivity로 전달 (bytes=${byteArray.size})")
@@ -309,14 +323,18 @@ class OverlayService : Service() {
                     startActivity(intent)
                 } catch (e: Exception) {
                     // 에러 발생 시 리소스 정리
+                    android.util.Log.e("OverlayService", "이미지 처리 중 오류: ${e.message}", e)
                     image.close()
                     virtualDisplay?.release()
                     virtualDisplay = null
                     imageReader?.close()
                     imageReader = null
+                    hideOverlayButton()
                 }
+            } else {
+                android.util.Log.e("OverlayService", "acquireLatestImage()가 null 반환")
             }
-        }, null)
+        }, imageReaderHandler)
     }
 
     private fun imageToBitmap(image: Image): Bitmap {
@@ -356,6 +374,11 @@ class OverlayService : Service() {
         mediaProjection?.stop()
         mediaProjection = null
         hideOverlayButton()
+        
+        // 백그라운드 스레드 정리
+        imageReaderThread?.quitSafely()
+        imageReaderThread = null
+        imageReaderHandler = null
     }
 }
 
