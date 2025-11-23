@@ -138,10 +138,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (permissionResult != 'permission_granted') {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('오버레이 권한이 필요합니다. 설정에서 권한을 허용해주세요.'),
+              SnackBar(
+                content: const Text('오버레이 권한이 필요합니다. 설정에서 권한을 허용해주세요.'),
                 backgroundColor: Colors.orange,
-                duration: Duration(seconds: 3),
+                duration: const Duration(seconds: 5),
+                action: SnackBarAction(
+                  label: '설정 열기',
+                  onPressed: () async {
+                    // 오버레이 권한 설정 화면으로 이동
+                    try {
+                      final result = await _channel.invokeMethod<String>('requestOverlayPermission');
+                      if (result == 'permission_requested') {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('설정 화면으로 이동했습니다. "갈무리 다이어리"를 허용해주세요.'),
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('설정 화면 열기 실패: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  },
+                ),
               ),
             );
           }
