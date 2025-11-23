@@ -87,11 +87,21 @@ GitHub Actions를 수동으로 트리거하려면:
    - **"Run workflow"** 클릭
 
 5. **빌드 진행 상황 확인**
-   - 약 3-5분 소요
+   - 약 5-10분 소요
+   - 각 단계별 진행 상황 확인 가능:
+     - ✅ Checkout code
+     - ✅ Setup Java
+     - ✅ Setup Flutter
+     - ✅ Get dependencies
+     - ✅ Build APK
+     - ✅ Upload APK
+     - ✅ Create Release
    - 완료되면 녹색 체크 표시
+   - 실패 시 빨간색 X 표시 및 오류 로그 확인
 
 6. **APK 다운로드**
-   - Artifacts 또는 Releases에서 다운로드
+   - **성공 시**: Artifacts 섹션에서 ZIP 파일 다운로드
+   - **실패 시**: "Build APK" 작업 클릭하여 오류 로그 확인
 
 ---
 
@@ -150,9 +160,39 @@ git push origin main
 - 저장 공간 확인
 
 ### GitHub Actions 빌드 실패
-1. Actions 탭에서 실패한 workflow 클릭
-2. 로그 확인
-3. 문제 수정 후 다시 푸시
+
+#### 일반적인 빌드 실패 원인 및 해결 방법
+
+**1. "Build APK Process completed with exit code 1" 오류**
+- **원인**: Flutter 빌드 중 컴파일 오류 또는 의존성 문제
+- **해결 방법**:
+  1. Actions 탭에서 실패한 workflow 클릭
+  2. "Build APK" 작업 클릭하여 상세 로그 확인
+  3. 오류 메시지 확인 (일반적으로 빨간색으로 표시됨)
+  4. 문제 수정 후 다시 푸시하거나 수동으로 재실행
+
+**2. 의존성 문제**
+- **원인**: `pubspec.yaml`의 패키지 버전 충돌
+- **해결 방법**:
+  ```bash
+  cd android
+  flutter pub get
+  flutter pub upgrade
+  ```
+
+**3. Gradle 빌드 오류**
+- **원인**: Android Gradle Plugin 또는 SDK 버전 문제
+- **해결 방법**: `android/build.gradle` 및 `android/app/build.gradle` 확인
+
+**4. 메모리 부족**
+- **원인**: 빌드 중 메모리 부족
+- **해결 방법**: GitHub Actions에서 자동으로 재시도되거나, 수동으로 다시 실행
+
+**5. 빌드가 트리거되지 않음**
+- **원인**: `paths` 제한으로 인해 일부 파일 변경이 감지되지 않음
+- **해결 방법**: 
+  - GitHub Actions에서 수동으로 "Run workflow" 실행
+  - 또는 워크플로우 파일의 `paths` 제한 확인
 
 ---
 
@@ -160,10 +200,18 @@ git push origin main
 
 APK 설치 후:
 1. **앱 실행**
-2. **설정**에서 API URL 확인: `https://galmuri.onrender.com`
-3. **캡처** 탭에서 **화면 캡처** 버튼으로 스크린샷 촬영
-4. 제목/메모 입력 후 저장
-5. 홈 화면에서 저장된 항목 확인
+2. **설정**에서 **User ID 입력** (필수!)
+   - 예: `test_user_01`
+   - User ID 없으면 캡처 저장이 안 됩니다
+3. **오버레이 권한 허용** (필수!)
+   - 캡처 버튼 클릭 시 "설정 열기" 버튼으로 이동
+   - 또는 설정 → 앱 → 갈무리 다이어리 → 다른 앱 위에 표시 → 허용
+4. **홈 화면에서 "캡처" 버튼 클릭**
+5. **"전체 화면" 선택** (중요!)
+6. **빨간 캡처 버튼 클릭**
+7. **자동 저장 확인**
+   - "화면 캡처가 자동 저장되었습니다!" 메시지 확인
+   - 홈 화면에서 저장된 항목 확인
 
 ---
 
