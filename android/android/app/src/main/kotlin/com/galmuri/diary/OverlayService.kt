@@ -283,9 +283,13 @@ class OverlayService : Service() {
                     val byteArray = bitmapToByteArray(bitmap)
                     
                     // MainActivity에 캡처 결과 전달
+                    android.util.Log.d("OverlayService", "캡처 완료, MainActivity로 전달 (bytes=${byteArray.size})")
                     val mainActivity = MainActivity.getInstance()
                     if (mainActivity != null) {
+                        android.util.Log.d("OverlayService", "MainActivity 인스턴스 발견, onScreenCaptured 호출")
                         mainActivity.onScreenCaptured(byteArray)
+                    } else {
+                        android.util.Log.e("OverlayService", "MainActivity 인스턴스가 null입니다!")
                     }
                     
                     // 정리

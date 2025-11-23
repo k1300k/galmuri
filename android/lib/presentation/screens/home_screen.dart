@@ -46,12 +46,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _setupCaptureListener() {
+    debugPrint('[HomeScreen] EventChannel 리스너 설정 시작');
     _captureSubscription?.cancel();
     _captureSubscription = _eventChannel.receiveBroadcastStream().listen(
       (event) {
+        debugPrint('[HomeScreen] EventChannel 이벤트 수신: ${event.runtimeType}');
         if (event is Map && event['type'] == 'screen_captured') {
           final imageBase64 = event['imageBase64'] as String?;
+          debugPrint('[HomeScreen] screen_captured 이벤트 수신 (base64 length=${imageBase64?.length ?? 0})');
           if (imageBase64 != null && mounted) {
+            debugPrint('[HomeScreen] CaptureScreen으로 이동 시작');
             // CaptureScreen으로 이동하면서 캡처된 이미지 전달
             Navigator.push(
               context,
@@ -61,12 +65,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
             ).then((_) {
+              debugPrint('[HomeScreen] CaptureScreen에서 복귀, 목록 새로고침');
               ref.read(galmuriItemsProvider.notifier).loadItems();
             });
+          } else {
+            debugPrint('[HomeScreen] imageBase64가 null이거나 mounted가 false');
           }
+        } else {
+          debugPrint('[HomeScreen] 알 수 없는 이벤트 타입: ${event is Map ? event['type'] : 'not Map'}');
         }
       },
       onError: (error) {
+        debugPrint('[HomeScreen] EventChannel 오류: $error');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -76,7 +86,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           );
         }
       },
+      onDone: () {
+        debugPrint('[HomeScreen] EventChannel 스트림 종료');
+      },
     );
+    debugPrint('[HomeScreen] EventChannel 리스너 설정 완료');
   }
 
   Future<void> _showOverlayCapture() async {

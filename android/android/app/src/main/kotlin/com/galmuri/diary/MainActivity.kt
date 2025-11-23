@@ -50,13 +50,17 @@ class MainActivity: FlutterActivity() {
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, EVENT_CHANNEL).setStreamHandler(
             object : EventChannel.StreamHandler {
                 override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                    android.util.Log.d("MainActivity", "EventChannel onListen 호출됨")
                     eventSink = events
                     pendingCaptureBase64?.let { base64 ->
+                        android.util.Log.d("MainActivity", "pendingCaptureBase64 전달 (length=${base64.length})")
                         events?.success(mapOf(
                             "type" to "screen_captured",
                             "imageBase64" to base64
                         ))
                         pendingCaptureBase64 = null
+                    } ?: run {
+                        android.util.Log.d("MainActivity", "pendingCaptureBase64 없음")
                     }
                 }
 
@@ -173,14 +177,18 @@ class MainActivity: FlutterActivity() {
     
     fun onScreenCaptured(imageBytes: ByteArray) {
         runOnUiThread {
+            android.util.Log.d("MainActivity", "onScreenCaptured 호출됨 (bytes=${imageBytes.size})")
             val base64 = Base64.encodeToString(imageBytes, Base64.NO_WRAP)
+            android.util.Log.d("MainActivity", "Base64 인코딩 완료 (length=${base64.length})")
             val eventData = mapOf(
                 "type" to "screen_captured",
                 "imageBase64" to base64
             )
             if (eventSink != null) {
+                android.util.Log.d("MainActivity", "eventSink가 있음, 즉시 전달")
                 eventSink?.success(eventData)
             } else {
+                android.util.Log.w("MainActivity", "eventSink가 null, pendingCaptureBase64에 저장")
                 pendingCaptureBase64 = base64
             }
         }
