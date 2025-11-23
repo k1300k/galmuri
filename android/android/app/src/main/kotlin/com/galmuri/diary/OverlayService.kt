@@ -154,10 +154,16 @@ class OverlayService : Service() {
                 textSize = 14f
                 setPadding(32, 16, 32, 16)
                 
+                var isDragging = false
+                var downTime = 0L
+                
                 // 드래그 가능하도록 터치 리스너 설정
                 setOnTouchListener { view, event ->
                     when (event.action) {
                         MotionEvent.ACTION_DOWN -> {
+                            android.util.Log.d("OverlayService", "버튼 ACTION_DOWN")
+                            downTime = System.currentTimeMillis()
+                            isDragging = false
                             overlayParams?.let { params ->
                                 initialX = params.x
                                 initialY = params.y
@@ -172,36 +178,49 @@ class OverlayService : Service() {
                         MotionEvent.ACTION_MOVE -> {
                             val deltaX = (event.rawX - initialTouchX).toInt()
                             val deltaY = (event.rawY - initialTouchY).toInt()
+                            val moveDistance = Math.sqrt(
+                                Math.pow(deltaX.toDouble(), 2.0) +
+                                Math.pow(deltaY.toDouble(), 2.0)
+                            )
                             
-                            overlayParams?.let { params ->
-                                params.x = initialX + deltaX
-                                params.y = initialY + deltaY
-                                
-                                // 화면 경계 체크
-                                params.x = params.x.coerceIn(0, screenWidth - view.width)
-                                params.y = params.y.coerceIn(0, screenHeight - view.height)
-                                
-                                windowManager?.updateViewLayout(overlayView, params)
+                            // 10픽셀 이상 이동하면 드래그로 간주
+                            if (moveDistance > 10) {
+                                isDragging = true
+                                overlayParams?.let { params ->
+                                    params.x = initialX + deltaX
+                                    params.y = initialY + deltaY
+                                    
+                                    // 화면 경계 체크
+                                    params.x = params.x.coerceIn(0, screenWidth - view.width)
+                                    params.y = params.y.coerceIn(0, screenHeight - view.height)
+                                    
+                                    windowManager?.updateViewLayout(overlayView, params)
+                                }
                             }
                             true
                         }
                         MotionEvent.ACTION_UP -> {
+                            android.util.Log.d("OverlayService", "버튼 ACTION_UP (isDragging=$isDragging)")
+                            val upTime = System.currentTimeMillis()
+                            val timeDiff = upTime - downTime
+                            
                             // 위치 저장
                             overlayParams?.let { params ->
                                 prefs.edit()
                                     .putInt(PREF_OVERLAY_X, params.x)
                                     .putInt(PREF_OVERLAY_Y, params.y)
                                     .apply()
-                                
-                                // 클릭 이벤트 처리 (짧은 이동이면 클릭으로 간주)
-                                val moveDistance = Math.sqrt(
-                                    Math.pow((event.rawX - initialTouchX).toDouble(), 2.0) +
-                                    Math.pow((event.rawY - initialTouchY).toDouble(), 2.0)
-                                )
-                                if (moveDistance < 10) { // 10픽셀 이하면 클릭으로 간주
-                                    captureScreen()
-                                }
                             }
+                            
+                            // 드래그가 아니고 짧은 시간(300ms 이하)이면 클릭으로 간주
+                            if (!isDragging && timeDiff < 300) {
+                                android.util.Log.d("OverlayService", "클릭 감지! captureScreen() 호출")
+                                captureScreen()
+                            } else {
+                                android.util.Log.d("OverlayService", "드래그로 판단됨 (isDragging=$isDragging, timeDiff=${timeDiff}ms)")
+                            }
+                            
+                            view.performClick()
                             true
                         }
                         else -> false
